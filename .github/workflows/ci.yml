@@ -1,0 +1,38 @@
+name: easy-log-bundle
+
+on:
+    push:
+        branches:
+            - master
+            - develop
+    pull_request:
+        branches:
+            - master
+            - develop
+    release:
+        types: [published]
+
+jobs:
+
+    build:
+
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v1
+            - name: Build the docker images
+              run: make build
+            - name: Start the docker images
+              run: make start
+            - name: Check running containers
+              run: docker ps -a
+            - name: Test bundle with Symfony 4
+              run: make test-using-symfony-4
+            - name: Display information
+              run: make info
+            - name: Test bundle with Symfony 5
+              run: make test-using-symfony-5
+            - name: Display information
+              run: make info
+            - name: Stop the docker images
+              run: make stop

@@ -1,0 +1,11 @@
+/.git*
+/.github
+/.idea*
+.dockerignore
+.editorconfig
+.gitignore
+
+/vendor/
+
+Dockerfile
+docker-compose.yml

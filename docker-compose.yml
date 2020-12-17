@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+
+    nginx:
+      image: nginx:latest
+      build:
+        context: ./docker/
+        args:
+          - "BUILD_ARGUMENT_ENV=dev"
+        dockerfile: ./nginx/Dockerfile
+      container_name: ${COMPOSE_PROJECT_NAME}_nginx
+      restart: always
+      ports:
+        - 80:80
+        - 443:443
+      volumes:
+        - ./docker/src:/var/www/html:ro
+      depends_on:
+        - symfony
+      links:
+        - symfony
+
+    symfony: &symfony-template
+      image: symfony:latest
+      build:
+        context: .
+        args:
+          - "BUILD_ARGUMENT_ENV=dev"
+          - "BUILD_ARGUMENT_DEBUG_ENABLED=false"
+        dockerfile: ./Dockerfile
+      container_name: ${COMPOSE_PROJECT_NAME}_symfony
+      expose:
+        - 9000
+      volumes:
+        - ./docker/src:/var/www/html
