@@ -24,7 +24,10 @@
 		}
 	],
 	"replace": {
-		"easycorp/easy-log-handler": "self.version"
+		"easycorp/easy-log-handler": "1.0.9"
+	},
+	"conflict": {
+		"easycorp/easy-log-handler": "*"
 	},
 	"require": {
 		"php": ">=7.4",
