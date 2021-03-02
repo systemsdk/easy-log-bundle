@@ -36,10 +36,6 @@ class EasyLogExtension extends Extension
      */
     public function configValidate(ContainerBuilder $container): void
     {
-        if (!$container->has('monolog.handler.easylog')) {
-            throw new InvalidArgumentException('Please configure monolog config according to EasyLog bundle readme.');
-        }
-
         if (!$container->hasDefinition('easy_log.handler') || !$container->hasDefinition('easy_log.formatter')) {
             throw new InvalidArgumentException('Wrong services definition for EasyLog bundle.');
         }
