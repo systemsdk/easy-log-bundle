@@ -167,7 +167,7 @@ Configuration and Usage
 You can change default configuration in your application by editing next config file:
 
 ```yaml
-# config/packages/dev/easy_log.yaml
+# config/packages/dev/systemsdk_easy_log.yaml
 easy_log:
     log_path: '%kernel.logs_dir%/%kernel.environment%-readable.log'
     max_line_length: 120
