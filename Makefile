@@ -51,6 +51,7 @@ transfer-monolog-config:
 	@make exec-bash cmd="cp --force /tmp/monolog.yaml /var/www/html/config/packages/dev/"
 
 install-bundle:
+	@make exec-bash cmd="composer config extra.symfony.allow-contrib true"
 	@make exec-bash cmd="composer require --dev systemsdk/easy-log-bundle"
 
 cache-clear-warmup:
