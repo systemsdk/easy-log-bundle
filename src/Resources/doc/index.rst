@@ -48,9 +48,10 @@ In the above configuration, the ``buffered`` handler saves all log messages and 
 which processes all messages at once and writes the result in the log file.
 Use the ``buffered`` handler to configure the channels logged/excluded and the level of the messages being logged.
 
-3. Install next symfony bundle:
+3. Allow Flex to use contrib recipes and install next symfony bundle:
 
 .. code-block:: bash
+    $ composer config extra.symfony.allow-contrib true
     $ composer require --dev systemsdk/easy-log-bundle
 
 
