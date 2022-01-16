@@ -1,5 +1,5 @@
 # EasyLogBundle
-Human-friendly log files for symfony framework. Forked from EasyCorp/easy-log-handler due to EasyCorp/easy-log-handler is abandoned and no longer maintained.
+Human-friendly log files for symfony framework. This is modified version of [EasyCorp/easy-log-handler](https://github.com/EasyCorp/easy-log-handler) due to EasyCorp/easy-log-handler is abandoned and no longer maintained.
 
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Actions Status](https://github.com/systemsdk/easy-log-bundle/workflows/easy-log-bundle/badge.svg)](https://github.com/systemsdk/easy-log-bundle/actions)
