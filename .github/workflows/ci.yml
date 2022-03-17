@@ -32,6 +32,8 @@ jobs:
               run: make info
             - name: Test bundle with Symfony 5
               run: make test-using-symfony-5
+            - name: Test bundle with Symfony 6
+              run: make test-using-symfony-6
             - name: Display information
               run: make info
             - name: Stop the docker images
