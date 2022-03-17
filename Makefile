@@ -44,11 +44,18 @@ test-using-symfony-5:
 	@make install-bundle
 	@make cache-clear-warmup
 
+test-using-symfony-6:
+	@make clean
+	@make exec-bash cmd="composer create-project symfony/website-skeleton . ^6.0"
+	@make transfer-monolog-config
+	@make install-bundle
+	@make cache-clear-warmup
+
 clean:
 	@make exec-bash cmd="find . -delete"
 
 transfer-monolog-config:
-	@make exec-bash cmd="cp --force /tmp/monolog.yaml /var/www/html/config/packages/dev/"
+	@make exec-bash cmd="mkdir -p /var/www/html/config/packages/dev && cp --force /tmp/monolog.yaml /var/www/html/config/packages/dev/"
 
 install-bundle:
 	@make exec-bash cmd="composer config extra.symfony.allow-contrib true"
