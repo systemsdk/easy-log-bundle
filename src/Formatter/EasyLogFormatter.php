@@ -1,17 +1,21 @@
 <?php
-declare(strict_types = 1);
+
+declare(strict_types=1);
 
 namespace Systemsdk\Bundle\EasyLogBundle\Formatter;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use Monolog\Formatter\FormatterInterface;
+use Monolog\Level;
+use Monolog\LogRecord;
 use RuntimeException;
 use Symfony\Component\Yaml\Yaml;
 use Throwable;
+
 use function array_key_exists;
 use function get_class;
 use function in_array;
-use function is_array;
 use function is_bool;
 use function is_object;
 use function is_string;
@@ -26,22 +30,16 @@ use function strlen;
  */
 class EasyLogFormatter implements FormatterInterface
 {
+    private const DISPLAY_LOG_INFO_FIELD = 'display_log_info';
     private const TITLE_ASSETIC_REQUEST = 'Assetic request';
     private const TITLE_DATE_FORMAT = 'd/M/Y H:i:s';
     private const PHP_SERIALIZED_OBJECT_PREFIX = '- !php/object:';
 
-    private int $maxLineLength;
-    private int $prefixLength;
-    private array $ignoredRoutes;
-
-    /**
-     * Constructor
-     */
-    public function __construct(int $maxLineLength, int $prefixLength, array $ignoredRoutes)
-    {
-        $this->maxLineLength = $maxLineLength;
-        $this->prefixLength = $prefixLength;
-        $this->ignoredRoutes = $ignoredRoutes;
+    public function __construct(
+        private readonly int $maxLineLength,
+        private readonly int $prefixLength,
+        private readonly array $ignoredRoutes
+    ) {
     }
 
     /**
@@ -49,7 +47,7 @@ class EasyLogFormatter implements FormatterInterface
      *
      * @throws RuntimeException
      */
-    public function format(array $record): void
+    public function format(LogRecord $record): mixed
     {
         // The method "format()" should never be called (call "formatBatch()" instead).
         throw new RuntimeException(
@@ -60,19 +58,24 @@ class EasyLogFormatter implements FormatterInterface
     /**
      * {@inheritdoc}
      */
-    public function formatBatch(array $records): array
+    public function formatBatch(array $records): LogRecord
     {
-        $logBatch = ['formatted' => ''];
+        $logBatch = new LogRecord(
+            datetime: new DateTimeImmutable('now'),
+            channel: 'php',
+            level: Level::Debug,
+            message: '',
+            formatted: ''
+        );
 
         if ($this->isInIgnoreList($records)) {
             return $logBatch;
         }
 
-        $logBatch['formatted'] .= $this->formatLogBatchHeader($records);
+        $logBatch->offsetSet('formatted', $logBatch->formatted . $this->formatLogBatchHeader($records));
 
         foreach ($records as $key => $record) {
             $key = (int)$key;
-            $record = (array)$record;
 
             if ($this->isDeprecationLog($record)) {
                 $records[$key] = $this->processDeprecationLogRecord($record);
@@ -98,10 +101,13 @@ class EasyLogFormatter implements FormatterInterface
                 $records[$key] = $this->processDoctrineLogRecord($record);
             }
 
-            $logBatch['formatted'] .= rtrim($this->formatRecord($records, $key), PHP_EOL) . PHP_EOL;
+            $logBatch->offsetSet(
+                'formatted',
+                $logBatch->formatted . rtrim($this->formatRecord($records, $key), PHP_EOL) . PHP_EOL
+            );
         }
 
-        $logBatch['formatted'] .= PHP_EOL . PHP_EOL;
+        $logBatch->offsetSet('formatted', $logBatch->formatted . PHP_EOL . PHP_EOL);
 
         return $logBatch;
     }
@@ -110,8 +116,8 @@ class EasyLogFormatter implements FormatterInterface
     {
         foreach ($records as $record) {
             if ($this->ignoredRoutes
-                && isset($record['context']['route'])
-                && in_array($record['context']['route'], $this->ignoredRoutes, true)
+                && isset($record->context['route'])
+                && in_array($record->context['route'], $this->ignoredRoutes, true)
             ) {
                 return true;
             }
@@ -120,61 +126,66 @@ class EasyLogFormatter implements FormatterInterface
         return false;
     }
 
-    private function isAsseticLog(array $record): bool
+    private function isAsseticLog(LogRecord $record): bool
     {
-        return isset($record['context']['route']) && strpos($record['context']['route'], '_assetic_') === 0;
+        return isset($record->context['route']) && strpos((string)$record->context['route'], '_assetic_') === 0;
     }
 
-    private function isDeprecationLog(array $record): bool
+    private function isDeprecationLog(LogRecord $record): bool
     {
-        $isPhpChannel = isset($record['channel']) && $record['channel'] === 'php';
-        $isDeprecationError = isset($record['context']['type']) && $record['context']['type'] === E_USER_DEPRECATED;
-        $looksLikeDeprecationMessage = isset($record['message'])
-            && strpos($record['message'], 'deprecated since') !== false;
+        $isPhpChannel = $record->channel === 'php';
+        $isDeprecationError = isset($record->context['type']) && $record->context['type'] === E_USER_DEPRECATED;
+        $looksLikeDeprecationMessage = strpos($record->message, 'deprecated since') !== false;
 
         return $isPhpChannel && ($isDeprecationError || $looksLikeDeprecationMessage);
     }
 
-    private function isEventStopLog(array $record): bool
+    private function isEventStopLog(LogRecord $record): bool
     {
-        return isset($record['message'])
-            && $record['message'] === 'Listener "{listener}" stopped propagation of the event "{event}".';
+        return $record->message === 'Listener "{listener}" stopped propagation of the event "{event}".';
     }
 
-    private function isEventNotificationLog(array $record): bool
+    private function isEventNotificationLog(LogRecord $record): bool
     {
-        $isEventNotifyChannel = isset($record['channel']) && $record['channel'] === '_event_notify';
-        $isEventChannel = isset($record['channel']) && $record['channel'] === 'event';
-        $contextWithEventNotification = isset($record['context']['event'], $record['context']['listener']);
+        $isEventNotifyChannel = $record->channel === '_event_notify';
+        $isEventChannel = $record->channel === 'event';
+        $context = $record->context;
+
+        $contextWithEventNotification = isset($context['event'], $context['listener']);
 
         return $isEventNotifyChannel || ($isEventChannel && $contextWithEventNotification);
     }
 
-    private function isTranslationLog(array $record): bool
+    private function isTranslationLog(LogRecord $record): bool
     {
-        return isset($record['channel']) && $record['channel'] === 'translation';
+        return $record->channel === 'translation';
     }
 
-    private function isRouteMatchLog(array $record): bool
+    private function isRouteMatchLog(LogRecord $record): bool
     {
-        return isset($record['message']) && $record['message'] === 'Matched route "{route}".';
+        return $record->message === 'Matched route "{route}".';
     }
 
-    private function isDoctrineLog(array $record): bool
+    private function isDoctrineLog(LogRecord $record): bool
     {
-        return isset($record['channel']) && $record['channel'] === 'doctrine';
+        return $record->channel === 'doctrine';
     }
 
     private function formatLogBatchHeader(array $records): string
     {
-        $firstRecord = isset($records[0]) && is_array($records[0]) ? $records[0] : [];
+        $firstRecord = isset($records[0]) && $records[0] instanceof LogRecord ? $records[0] : null;
 
-        if ($this->isAsseticLog($firstRecord)) {
+        if ($firstRecord && $this->isAsseticLog($firstRecord)) {
             return $this->formatAsSubtitle(self::TITLE_ASSETIC_REQUEST);
         }
 
-        $logDate = $firstRecord['datetime'] ?? 'unknown_date';
-        $logDateAsString = is_object($logDate) ? $logDate->format(self::TITLE_DATE_FORMAT) : $logDate;
+        $logDate = 'unknown_date';
+
+        if ($firstRecord) {
+            $logDate = $firstRecord->datetime;
+        }
+
+        $logDateAsString = is_object($logDate) ? $logDate->format(self::TITLE_DATE_FORMAT) : (string)$logDate;
 
         return $this->formatAsTitle($logDateAsString);
     }
@@ -199,25 +210,32 @@ class EasyLogFormatter implements FormatterInterface
 
     private function formatRecord(array $records, int $currentRecordIndex): string
     {
-        $record = $records[$currentRecordIndex] ?? [];
         $recordAsString = '';
+
+        if (!isset($records[$currentRecordIndex]) || !($records[$currentRecordIndex] instanceof LogRecord)) {
+            return $recordAsString;
+        }
+
+        $record = $records[$currentRecordIndex];
 
         if ($this->isLogInfoDisplayed($record)) {
             $logInfo = $this->formatLogInfo($record);
             $recordAsString .= $this->formatAsSection($logInfo);
         }
 
-        if (!empty($record['message'])) {
+        if (!empty($record->message)) {
             $recordAsString .= $this->formatMessage($record) . PHP_EOL;
         }
 
-        if (!empty($record['context'])) {
+        $context = $record->context;
+
+        if (!empty($context)) {
             // if the context contains an error stack trace, remove it to display it separately
             $stack = null;
 
-            if (isset($record['context']['stack'])) {
-                $stack = $record['context']['stack'];
-                unset($record['context']['stack']);
+            if (isset($context['stack'])) {
+                $stack = $context['stack'];
+                unset($context['stack']);
             }
 
             $recordAsString .= $this->formatContext($record) . PHP_EOL;
@@ -228,13 +246,17 @@ class EasyLogFormatter implements FormatterInterface
             }
         }
 
-        if (!empty($record['extra'])) {
+        if (!empty($record->extra)) {
             // don't display the extra information when it's identical to the previous log record
-            $previousRecordExtra = isset($records[$currentRecordIndex - 1])
-                ? $records[$currentRecordIndex - 1]['extra']
-                : null;
+            $previousRecord = null;
 
-            if ($record['extra'] !== $previousRecordExtra) {
+            if (isset($records[$currentRecordIndex - 1]) && $records[$currentRecordIndex - 1] instanceof LogRecord) {
+                $previousRecord = $records[$currentRecordIndex - 1];
+            }
+
+            $previousRecordExtra = $previousRecord?->extra;
+
+            if ($record->extra !== $previousRecordExtra) {
                 $recordAsString .= $this->formatExtra($record) . PHP_EOL;
             }
         }
@@ -242,92 +264,144 @@ class EasyLogFormatter implements FormatterInterface
         return $recordAsString;
     }
 
-    private function processDeprecationLogRecord(array $record): array
+    private function processDeprecationLogRecord(LogRecord $record): LogRecord
     {
-        if (isset($record['context']['type'], $record['context']['level'])) {
-            unset($record['context']['type'], $record['context']['level']);
-        }
-
-        return $record;
-    }
-
-    private function processEventStopLogRecord(array $record): array
-    {
-        $record['channel'] = '_event_stop';
-        $record['message'] = 'Event "{event}" stopped by:';
-
-        return $record;
-    }
-
-    /**
-     * In Symfony applications is common to have lots of consecutive "event notify" log messages.
-     * This method combines them all to generate a more compact output.
-     */
-    private function processEventNotificationLogRecord(array $records, int $currentRecordIndex): array
-    {
-        $record = $records[$currentRecordIndex];
-
-        $record['message'] = null;
-        $record['channel'] = '_event_notify';
-        $record['context'] = [$record['context']['event'] => $record['context']['listener']];
-
-        // if the previous record is also an event notification, combine them
-        if (isset($records[$currentRecordIndex - 1])
-            && $this->isEventNotificationLog($records[$currentRecordIndex - 1])
-        ) {
-            $record['_properties']['display_log_info'] = false;
-        }
-
-        return $record;
-    }
-
-    /**
-     * In Symfony applications is common to have lots of consecutive "translation not found" log messages.
-     * This method combines them all to generate a more compact output.
-     */
-    private function processTranslationLogRecord(array $records, int $currentRecordIndex): array
-    {
-        $record = (array)$records[$currentRecordIndex];
-
-        if (isset($records[$currentRecordIndex - 1]) && $this->isTranslationLog($records[$currentRecordIndex - 1])) {
-            $record['_properties']['display_log_info'] = false;
-            $record['message'] = null;
-        }
-
-        return $record;
-    }
-
-    private function processRouteMatchLogRecord(array $record): array
-    {
-        if ($this->isAsseticLog($record)) {
-            $record['message'] = '{method}: {request_uri}';
-
-            return $record;
-        }
-
-        if (isset($record['context']['method'], $record['context']['request_uri'])) {
-            $context = $record['context'];
-            unset($context['method'], $context['request_uri']);
-
-            $record['context'] = array_merge(
-                [$record['context']['method'] => $record['context']['request_uri']],
-                $context
+        $context = $record->context;
+        if (isset($context['type'], $context['level'])) {
+            unset($context['type'], $context['level']);
+            $record = new LogRecord(
+                $record->datetime,
+                $record->channel,
+                $record->level,
+                $record->message,
+                $context,
+                $record->extra,
+                $record->formatted
             );
         }
 
         return $record;
     }
 
-    private function processDoctrineLogRecord(array $record): array
+    private function processEventStopLogRecord(LogRecord $record): LogRecord
     {
-        if (!isset($record['context']) || !is_array($record['context'])) {
-            return $record;
+        return new LogRecord(
+            $record->datetime,
+            '_event_stop',
+            $record->level,
+            'Event "{event}" stopped by:',
+            $record->context,
+            $record->extra,
+            $record->formatted
+        );
+    }
+
+    /**
+     * In Symfony applications is common to have lots of consecutive "event notify" log messages.
+     * This method combines them all to generate a more compact output.
+     */
+    private function processEventNotificationLogRecord(array $records, int $currentRecordIndex): LogRecord
+    {
+        /** @var LogRecord $record */
+        $record = $records[$currentRecordIndex];
+        $context = $record->context;
+        $contextNew = [];
+
+        if (array_key_exists('event', $context) && array_key_exists('listener', $context)) {
+            $contextNew = [$context['event'] => $context['listener']];
         }
 
-        $isDatabaseQueryContext = $this->arrayContainsOnlyNumericKeys($record['context']);
+        // if the previous record is also an event notification, combine them
+        if (isset($records[$currentRecordIndex - 1])
+            && $this->isEventNotificationLog($records[$currentRecordIndex - 1])
+        ) {
+            $record->extra[self::DISPLAY_LOG_INFO_FIELD] = false;
+        }
+
+        return new LogRecord(
+            $record->datetime,
+            '_event_notify',
+            $record->level,
+            '',
+            $contextNew,
+            $record->extra,
+            $record->formatted
+        );
+    }
+
+    /**
+     * In Symfony applications is common to have lots of consecutive "translation not found" log messages.
+     * This method combines them all to generate a more compact output.
+     */
+    private function processTranslationLogRecord(array $records, int $currentRecordIndex): LogRecord
+    {
+        /** @var LogRecord $record */
+        $record = $records[$currentRecordIndex];
+
+        if (isset($records[$currentRecordIndex - 1]) && $this->isTranslationLog($records[$currentRecordIndex - 1])) {
+            $record->extra[self::DISPLAY_LOG_INFO_FIELD] = false;
+            $record = new LogRecord(
+                $record->datetime,
+                $record->channel,
+                $record->level,
+                '',
+                $record->context,
+                $record->extra,
+                $record->formatted
+            );
+        }
+
+        return $record;
+    }
+
+    private function processRouteMatchLogRecord(LogRecord $record): LogRecord
+    {
+        if ($this->isAsseticLog($record)) {
+            return new LogRecord(
+                $record->datetime,
+                $record->channel,
+                $record->level,
+                '{method}: {request_uri}',
+                $record->context,
+                $record->extra,
+                $record->formatted
+            );
+        }
+
+        if (array_key_exists('method', $record->context) && array_key_exists('request_uri', $record->context)) {
+            $context = $record->context;
+            unset($context['method'], $context['request_uri']);
+            $record = new LogRecord(
+                $record->datetime,
+                $record->channel,
+                $record->level,
+                $record->message,
+                array_merge(
+                    [$record->context['method'] => $record->context['request_uri']],
+                    $context
+                ),
+                $record->extra,
+                $record->formatted
+            );
+        }
+
+        return $record;
+    }
+
+    private function processDoctrineLogRecord(LogRecord $record): LogRecord
+    {
+        $isDatabaseQueryContext = $this->arrayContainsOnlyNumericKeys($record->context);
 
         if ($isDatabaseQueryContext) {
-            $record['context'] = ['query params' => $record['context']];
+            $record = new LogRecord(
+                $record->datetime,
+                $record->channel,
+                $record->level,
+                $record->message,
+                ['query params' => $record['context']],
+                $record->extra,
+                $record->formatted
+            );
         }
 
         return $record;
@@ -349,12 +423,8 @@ class EasyLogFormatter implements FormatterInterface
         return $string;
     }
 
-    private function formatLogChannel(array $record): string
+    private function formatLogChannel(LogRecord $record): string
     {
-        if (!isset($record['channel'])) {
-            return '';
-        }
-
         if ($this->isDeprecationLog($record)) {
             return '** DEPRECATION **';
         }
@@ -363,16 +433,15 @@ class EasyLogFormatter implements FormatterInterface
             return 'NOTIFIED EVENTS';
         }
 
-        $channel = $record['channel'];
         $channelIcons = ['_event_stop' => '[!] ', 'security' => '(!) '];
-        $channelIcon = array_key_exists($channel, $channelIcons) ? $channelIcons[$channel] : '';
+        $channelIcon = array_key_exists($record->channel, $channelIcons) ? $channelIcons[$record->channel] : '';
 
-        return sprintf('%s%s', $channelIcon, strtoupper($channel));
+        return sprintf('%s%s', $channelIcon, strtoupper($record->channel));
     }
 
-    private function formatContext(array $record): string
+    private function formatContext(LogRecord $record): string
     {
-        $context = $this->filterVariablesUsedAsPlaceholders((string)$record['message'], (array)$record['context']);
+        $context = $this->filterVariablesUsedAsPlaceholders($record->message, $record->context);
         $context = $this->formatDateTimeObjects($context);
         $context = $this->formatThrowableObjects($context);
 
@@ -441,26 +510,22 @@ class EasyLogFormatter implements FormatterInterface
         return $beforePrefix . $objectAsString;
     }
 
-    private function formatExtra(array $record): string
+    private function formatExtra(LogRecord $record): string
     {
-        $extra = $this->formatDateTimeObjects((array)$record['extra']);
+        $extra = $this->formatDateTimeObjects($record->extra);
         $extraAsString = Yaml::dump(['extra' => $extra], 1, $this->prefixLength);
 
         return $this->formatTextBlock($extraAsString, '--> ');
     }
 
-    private function formatLogInfo(array $record): string
+    private function formatLogInfo(LogRecord $record): string
     {
         return sprintf('%s%s', $this->formatLogLevel($record), $this->formatLogChannel($record));
     }
 
-    private function formatLogLevel(array $record): string
+    private function formatLogLevel(LogRecord $record): string
     {
-        if (!isset($record['level_name'])) {
-            return '';
-        }
-
-        $level = $record['level_name'];
+        $level = $record->offsetGet('level_name');
         $levelLabels = [
             'DEBUG' => '',
             'INFO' => '',
@@ -472,9 +537,9 @@ class EasyLogFormatter implements FormatterInterface
         return array_key_exists($level, $levelLabels) ? $levelLabels[$level] : $level . ' ';
     }
 
-    private function formatMessage(array $record): string
+    private function formatMessage(LogRecord $record): string
     {
-        $message = $this->processStringPlaceholders((string)$record['message'], (array)$record['context']);
+        $message = $this->processStringPlaceholders($record->message, $record->context);
 
         return $this->formatStringAsTextBlock($message);
     }
@@ -524,10 +589,8 @@ class EasyLogFormatter implements FormatterInterface
         unset($line);
 
         $string = implode(PHP_EOL, $stringLines);
-        // needed to remove the unnecessary prefix added to the first line
-        $string = trim($string);
 
-        return $string;
+        return trim($string);
     }
 
     /**
@@ -596,7 +659,7 @@ class EasyLogFormatter implements FormatterInterface
      * It returns the level at which YAML component inlines the values, which
      * determines how compact or readable the information is displayed.
      */
-    private function getInlineLevel(array $record): int
+    private function getInlineLevel(LogRecord $record): int
     {
         if ($this->isTranslationLog($record)) {
             return 0;
@@ -613,9 +676,9 @@ class EasyLogFormatter implements FormatterInterface
      * It returns true when the general information related to the record log should be displayed.
      * It returns false when a log is displayed in a compact way to combine it with a similar previous record.
      */
-    private function isLogInfoDisplayed(array $record): bool
+    private function isLogInfoDisplayed(LogRecord $record): bool
     {
-        return $record['_properties']['display_log_info'] ?? true;
+        return $record->extra[self::DISPLAY_LOG_INFO_FIELD] ?? true;
     }
 
     private function arrayContainsOnlyNumericKeys(array $array): bool

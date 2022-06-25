@@ -11,10 +11,15 @@ Symfony log files are formatted in the same way for all environments. This means
 
 This bundle is a new Monolog handler that creates human-friendly log files. It's optimized to display the log information in a clear and concise way. Use it in the development environment to become a much more productive developer.
 
-## Requirements
+## Requirements for EasyLogBundle version 2 or later
+* PHP 8.1 or later
+* Symfony 6.1 or later
+* Monolog bundle 3.0 or later
+
+## Requirements for EasyLogBundle version 1
 * PHP 7.4 or later
 * Symfony 4.4 or later
-* Monolog bundle 1.6 or later
+* Monolog bundle 1.6 or later up to 2.X
 
 ## Contents
 1. [Features](#features)
@@ -159,7 +164,7 @@ Use the `buffered` handler to configure the channels logged/excluded and the lev
 3. Allow Flex to use contrib recipes and install next symfony bundle:
 ```bash
 $ composer config extra.symfony.allow-contrib true
-$ composer require --dev systemsdk/easy-log-bundle
+$ composer require --dev systemsdk/easy-log-bundle:*
 ```
 
 Configuration and Usage

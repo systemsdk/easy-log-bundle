@@ -1,4 +1,4 @@
-version: '3'
+version: '3.5'
 
 services:
 
@@ -7,15 +7,15 @@ services:
       build:
         context: ./docker/
         args:
-          - "BUILD_ARGUMENT_ENV=dev"
+          BUILD_ARGUMENT_ENV: dev
         dockerfile: ./nginx/Dockerfile
       container_name: ${COMPOSE_PROJECT_NAME}_nginx
       restart: always
       ports:
-        - 80:80
-        - 443:443
+        - "80:80"
+        - "443:443"
       volumes:
-        - ./docker/src:/var/www/html:ro
+        - ./docker/src:/var/www/html:ro,cached
       depends_on:
         - symfony
       links:
@@ -26,11 +26,12 @@ services:
       build:
         context: .
         args:
-          - "BUILD_ARGUMENT_ENV=dev"
-          - "BUILD_ARGUMENT_DEBUG_ENABLED=false"
+          BUILD_ARGUMENT_ENV: dev
+          HOST_UID: ${HOST_UID}
+          HOST_GID: ${HOST_GID}
         dockerfile: ./Dockerfile
       container_name: ${COMPOSE_PROJECT_NAME}_symfony
       expose:
         - 9000
       volumes:
-        - ./docker/src:/var/www/html
+        - ./docker/src:/var/www/html:cached

@@ -1,10 +1,12 @@
 <?php
-declare(strict_types = 1);
+
+declare(strict_types=1);
 
 namespace Systemsdk\Bundle\EasyLogBundle\Handler;
 
 use Monolog\Handler\StreamHandler;
 use RuntimeException;
+use Monolog\LogRecord;
 
 /**
  * Class EasyLogHandler
@@ -16,7 +18,7 @@ class EasyLogHandler extends StreamHandler
      *
      * @throws RuntimeException
      */
-    public function handle(array $record): bool
+    public function handle(LogRecord $record): bool
     {
         // The method "handle()" should never be called (call "handleBatch()" instead).
         throw new RuntimeException(

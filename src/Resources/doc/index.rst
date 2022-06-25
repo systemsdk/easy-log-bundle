@@ -52,7 +52,7 @@ Use the ``buffered`` handler to configure the channels logged/excluded and the l
 
 .. code-block:: bash
     $ composer config extra.symfony.allow-contrib true
-    $ composer require --dev systemsdk/easy-log-bundle
+    $ composer require --dev systemsdk/easy-log-bundle:*
 
 
 Configuration and Usage
