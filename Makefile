@@ -1,7 +1,7 @@
 ifndef INSIDE_DOCKER_CONTAINER
 	INSIDE_DOCKER_CONTAINER = 0
 endif
-export COMPOSE_PROJECT_NAME=easy_log_bundle
+export COMPOSE_PROJECT_NAME=easy-log-bundle
 HOST_UID := $(shell id -u)
 HOST_GID := $(shell id -g)
 PHP_USER := -u www-data
@@ -14,21 +14,21 @@ endif
 
 build:
 ifeq ($(INSIDE_DOCKER_CONTAINER), 0)
-	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker-compose -f docker-compose.yml build
+	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose -f compose.yaml build
 else
 	$(ERROR_ONLY_FOR_HOST)
 endif
 
 start:
 ifeq ($(INSIDE_DOCKER_CONTAINER), 0)
-	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker-compose -f docker-compose.yml $(PROJECT_NAME) up -d
+	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose -f compose.yaml $(PROJECT_NAME) up -d
 else
 	$(ERROR_ONLY_FOR_HOST)
 endif
 
 stop:
 ifeq ($(INSIDE_DOCKER_CONTAINER), 0)
-	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker-compose -f docker-compose.yml $(PROJECT_NAME) down
+	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose -f compose.yaml $(PROJECT_NAME) down
 else
 	$(ERROR_ONLY_FOR_HOST)
 endif
@@ -37,21 +37,21 @@ restart: stop start
 
 ssh:
 ifeq ($(INSIDE_DOCKER_CONTAINER), 0)
-	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker-compose $(PROJECT_NAME) exec $(OPTION_T) $(PHP_USER) symfony bash
+	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose $(PROJECT_NAME) exec $(OPTION_T) $(PHP_USER) symfony bash
 else
 	$(ERROR_ONLY_FOR_HOST)
 endif
 
 ssh-root:
 ifeq ($(INSIDE_DOCKER_CONTAINER), 0)
-	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker-compose $(PROJECT_NAME) exec $(OPTION_T) symfony bash
+	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose $(PROJECT_NAME) exec $(OPTION_T) symfony bash
 else
 	$(ERROR_ONLY_FOR_HOST)
 endif
 
 ssh-nginx:
 ifeq ($(INSIDE_DOCKER_CONTAINER), 0)
-	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker-compose $(PROJECT_NAME) exec nginx /bin/sh
+	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose $(PROJECT_NAME) exec nginx /bin/sh
 else
 	$(ERROR_ONLY_FOR_HOST)
 endif
@@ -60,40 +60,35 @@ exec:
 ifeq ($(INSIDE_DOCKER_CONTAINER), 1)
 	@$$cmd
 else
-	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker-compose $(PROJECT_NAME) exec $(OPTION_T) $(PHP_USER) symfony $$cmd
+	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose $(PROJECT_NAME) exec $(OPTION_T) $(PHP_USER) symfony $$cmd
 endif
 
 exec-bash:
 ifeq ($(INSIDE_DOCKER_CONTAINER), 1)
 	@bash -c "$(cmd)"
 else
-	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker-compose $(PROJECT_NAME) exec $(OPTION_T) $(PHP_USER) symfony bash -c "$(cmd)"
+	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose $(PROJECT_NAME) exec $(OPTION_T) $(PHP_USER) symfony bash -c "$(cmd)"
 endif
 
 exec-by-root:
 ifeq ($(INSIDE_DOCKER_CONTAINER), 0)
-	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker-compose $(PROJECT_NAME) exec $(OPTION_T) symfony $$cmd
+	@HOST_UID=$(HOST_UID) HOST_GID=$(HOST_GID) docker compose $(PROJECT_NAME) exec $(OPTION_T) symfony $$cmd
 else
 	$(ERROR_ONLY_FOR_HOST)
 endif
 
-test-using-symfony-4:
-	@make clean
-	@make exec-bash cmd="composer create-project symfony/website-skeleton . ^4.4"
-	@make transfer-monolog-config
-	@make install-bundle
-	@make cache-clear-warmup
-
-test-using-symfony-5:
-	@make clean
-	@make exec-bash cmd="composer create-project symfony/website-skeleton . ^5.0"
-	@make transfer-monolog-config
-	@make install-bundle
-	@make cache-clear-warmup
-
 test-using-symfony-6:
 	@make clean
-	@make exec-bash cmd="composer create-project symfony/website-skeleton . ^6.0"
+	@make exec-bash cmd="composer create-project symfony/skeleton:'6.4.x' ."
+	@make exec-bash cmd="composer require webapp --no-interaction"
+	@make transfer-monolog-config
+	@make install-bundle
+	@make cache-clear-warmup
+
+test-using-symfony-7:
+	@make clean
+	@make exec-bash cmd="composer create-project symfony/skeleton:'7.2.x' ."
+	@make exec-bash cmd="composer require webapp --no-interaction"
 	@make transfer-monolog-config
 	@make install-bundle
 	@make cache-clear-warmup
@@ -119,14 +114,14 @@ info:
 
 logs:
 ifeq ($(INSIDE_DOCKER_CONTAINER), 0)
-	@docker logs -f ${COMPOSE_PROJECT_NAME}_symfony
+	@docker logs -f ${COMPOSE_PROJECT_NAME}-symfony
 else
 	$(ERROR_ONLY_FOR_HOST)
 endif
 
 logs-nginx:
 ifeq ($(INSIDE_DOCKER_CONTAINER), 0)
-	@docker logs -f ${COMPOSE_PROJECT_NAME}_nginx
+	@docker logs -f ${COMPOSE_PROJECT_NAME}-nginx
 else
 	$(ERROR_ONLY_FOR_HOST)
 endif

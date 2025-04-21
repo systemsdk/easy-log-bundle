@@ -13,27 +13,22 @@ on:
         types: [published]
 
 jobs:
-
     build:
-
         runs-on: ubuntu-latest
-
         steps:
-            - uses: actions/checkout@v1
+            - uses: actions/checkout@v4
             - name: Build the docker images
               run: make build
             - name: Start the docker images
               run: make start
             - name: Check running containers
               run: docker ps -a
-            - name: Test bundle with Symfony 4
-              run: make test-using-symfony-4
-            - name: Display information
-              run: make info
-            - name: Test bundle with Symfony 5
-              run: make test-using-symfony-5
             - name: Test bundle with Symfony 6
               run: make test-using-symfony-6
+            - name: Display information
+              run: make info
+            - name: Test bundle with Symfony 7
+              run: make test-using-symfony-7
             - name: Display information
               run: make info
             - name: Stop the docker images
