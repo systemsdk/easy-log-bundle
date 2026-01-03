@@ -7,8 +7,9 @@ namespace Systemsdk\Bundle\EasyLogBundle\DependencyInjection;
 use InvalidArgumentException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Loader;
-use Symfony\Component\HttpKernel\DependencyInjection\Extension;
+use Symfony\Component\HttpKernel\Kernel;
 
 /**
  * Class EasyLogExtension
@@ -28,8 +29,14 @@ class EasyLogExtension extends Extension
         $container->setParameter('easy_log.prefix_length', $config['prefix_length']);
         $container->setParameter('easy_log.ignored_routes', $config['ignored_routes']);
 
-        $loader = new Loader\XmlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
-        $loader->load('services.xml');
+        $locator = new FileLocator(__DIR__ . '/../Resources/config');
+        if (Kernel::VERSION_ID >= 70400) {
+            $loader = new Loader\PhpFileLoader($container, $locator);
+            $loader->load('services.php');
+        } else {
+            $loader = new Loader\XmlFileLoader($container, $locator);
+            $loader->load('services.xml');
+        }
     }
 
     /**

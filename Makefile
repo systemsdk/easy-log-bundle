@@ -87,7 +87,15 @@ test-using-symfony-6:
 
 test-using-symfony-7:
 	@make clean
-	@make exec-bash cmd="composer create-project symfony/skeleton:'7.2.x' ."
+	@make exec-bash cmd="composer create-project symfony/skeleton:'7.4.x' ."
+	@make exec-bash cmd="composer require webapp --no-interaction"
+	@make transfer-monolog-config
+	@make install-bundle
+	@make cache-clear-warmup
+
+test-using-symfony-8:
+	@make clean
+	@make exec-bash cmd="composer create-project symfony/skeleton:'8.0.x' ."
 	@make exec-bash cmd="composer require webapp --no-interaction"
 	@make transfer-monolog-config
 	@make install-bundle

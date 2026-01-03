@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7-labs
-FROM php:8.4-fpm
+FROM php:8.5-fpm
 
 # set main params
 ARG BUILD_ARGUMENT_ENV=dev
@@ -37,8 +37,8 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
     && docker-php-ext-install \
       pdo_mysql \
       sockets \
-      intl \
-      opcache \
+      # intl \
+      # opcache \
       zip \
     && apt-get install --no-install-recommends -y \
         $(debsecan --suite bookworm --format packages --only-fixed) \
