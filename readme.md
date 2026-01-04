@@ -145,23 +145,7 @@ $ composer remove easycorp/easy-log-handler
 ```
 Note: Please remove configuration files `config/packages/easy_log_handler.yaml`, `config/packages/dev/easy_log_handler.yaml`, `config/packages/test/easy_log_handler.yaml`, etc...
 
-2. Edit your `config/packages/dev/monolog.yaml` and `config/packages/test/monolog.yaml` and put next configuration:
-```yaml
-monolog:
-    handlers:
-        buffered:
-            type: buffer
-            handler: easylog
-            level: debug
-            channels: ['!event']
-        easylog:
-            type: service
-            id: easy_log.handler
-```
-In the above configuration, the `buffered` handler saves all log messages and then passes them to the EasyLog bundle, which processes all messages at once and writes the result in the log file.
-Use the `buffered` handler to configure the channels logged/excluded and the level of the messages being logged.
-
-3. Allow Flex to use contrib recipes and install next symfony bundle:
+2. Allow Flex to use contrib recipes and install the next symfony bundle:
 ```bash
 $ composer config extra.symfony.allow-contrib true
 $ composer require --dev systemsdk/easy-log-bundle:*
@@ -170,13 +154,31 @@ $ composer require --dev systemsdk/easy-log-bundle:*
 Configuration and Usage
 -----------------------
 
-You can change default configuration in your application by editing next config file:
+You can change the default configuration in your application by editing the next config file:
 
 ```yaml
-# config/packages/dev/systemsdk_easy_log.yaml
-easy_log:
-    log_path: '%kernel.logs_dir%/%kernel.environment%-readable.log'
-    max_line_length: 120
-    prefix_length: 2
-    ignored_routes: ['_wdt', '_profiler']
+# config/packages/systemsdk_easy_log.yaml
+when@dev:
+    monolog:
+        handlers:
+            buffered:
+                type: buffer
+                handler: easylog
+                level: debug
+                channels: [ '!event' ]
+            easylog:
+                type: service
+                id: easy_log.handler
+    easy_log:
+        log_path: '%kernel.logs_dir%/%kernel.environment%-readable.log'
+        max_line_length: 120
+        prefix_length: 4
+        ignored_routes: [ '_wdt', '_profiler' ]
+
+when@test:
+    easy_log:
+        log_path: '%kernel.logs_dir%/%kernel.environment%-readable.log'
+        max_line_length: 120
+        prefix_length: 4
+        ignored_routes: [ '_wdt', '_profiler' ]
 ```
