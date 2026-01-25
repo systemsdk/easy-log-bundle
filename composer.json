@@ -23,14 +23,20 @@
 			"email": "dmytro.kravtsov@systemsdk.com"
 		}
 	],
-	"conflict": {
-		"easycorp/easy-log-handler": "*"
-	},
+	"funding": [
+		{
+			"type": "other",
+			"url": "https://secure.wayforpay.com/button/b0b1af16db515"
+		}
+	],
 	"require": {
 		"php": ">=8.1",
 		"monolog/monolog": "~3.0",
 		"symfony/yaml": "^6.1|^7.0|^8.0",
 		"symfony/framework-bundle": "^6.1|^7.0|^8.0"
+	},
+	"conflict": {
+		"easycorp/easy-log-handler": "*"
 	},
 	"autoload": {
 		"psr-4": {
